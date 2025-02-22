@@ -2,7 +2,12 @@ name: CELPIP Checker
 
 on:
   schedule:
-    cron: '0,10,20,30,40,50 8-23 * * *'  # 每天 8:00-23:59，每10分钟运行一次
+    - cron: '0 8-23 * * *'    
+    - cron: '10 8-23 * * *' 
+    - cron: '20 8-23 * * *' 
+    - cron: '30 8-23 * * *' 
+    - cron: '40 8-23 * * *' 
+    - cron: '50 8-23 * * *' 
   workflow_dispatch:  # 允许手动触发
 
 jobs:
