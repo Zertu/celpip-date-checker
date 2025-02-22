@@ -6,16 +6,7 @@ from bs4 import BeautifulSoup
 from email.message import EmailMessage
 from datetime import datetime
 from selenium.webdriver.support.ui import Select
-
-def find_xpath_click(full_x_path):
-    variable = browser.find_element("xpath", full_x_path)
-    variable.click()
-
-
-def drop_down_selection(driver, element_id, selection):
-    select_element = driver.find_element(By.ID, element_id)
-    var = Select(select_element)
-    var.select_by_value(selection)
+import os
 
 def send_email(url, availability_info):
     msg = EmailMessage()
@@ -36,47 +27,42 @@ def send_email(url, availability_info):
             print("Email sent!")
     except Exception as e:
         print(f"Error sending email: {str(e)}")
-        
+
 def celpip_checker():
-    url = "https://www.celpip.ca/"
+    url = "https://secure.celpip.ca/RegWebApp/#/registration/test-selection"
     print("Starting browser...")
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    
-    options.add_argument('--disable-gpu')
-    
-    # 减少日志输出
-    options.add_argument('--log-level=3')
-    options.add_argument('--silent')
-    options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    
-    # 设置 user-agent 避免被检测为机器人
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0')
+    browser = None
+
     try:
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-setuid-sandbox')
+        options.add_argument('--window-size=1920,1080')
+        
         browser = webdriver.Chrome(options=options)
+        print("Browser started successfully")
         browser.get(url)
+        print(f"Accessing URL: {url}")
         browser.implicitly_wait(20)
-        drop_down_selection(browser, "filter-type", "CELPIP-G")
-        drop_down_selection(browser, "filter-country", "Canada")
-        drop_down_selection(browser, "filter-region", "Newfoundland And Labrador")
-        drop_down_selection(browser, "filter-city", "St. John's")
-        find_xpath_click("/html/body/main/section[2]/div/div/form/div/div[2]")
-        time.sleep(6)
-
-        # DOWNLOAD THE HTML CONTENT OF THE PAGE
-        page = BeautifulSoup(browser.page_source, "html.parser")
-        browser.quit()
-        # FIND ALL THE "LI" LIST ITEM TAGS
+        
+        # 获取页面内容
+        page_source = browser.page_source
+        page = BeautifulSoup(page_source, 'html.parser')
+        print("Page content retrieved")
+        
+        # 找到所有日期容器
         containers = page.findAll("div", {"class": "col-xs-1 col"})
+        print(f"Found {len(containers)} date containers")
 
-        # ONLY KEEP THE FIRST TEN
+        # 只保留前10个
         early_dates = containers[:10]
-
-        # EXTRACT THE DATE COMPONENTS AND COMBINE THEM
         dates = []
         test_center = []
+        
         for item in early_dates:
             # 检查可用性
             availability_div = item.find("div", {"class": "availability-green"})
@@ -93,24 +79,22 @@ def celpip_checker():
                     # 同时添加对应的考试中心
                     center = item.find_next("div", {"class": "address"}).text.strip()
                     test_center.append(center)
-        
-        # CONVERT THE TEXT INTO DATETIME OBJECTS
+
+        # 转换为datetime对象进行比较
         only_dates = [datetime.strptime(date, '%b %d, %Y') for date in dates]
-
-        # SET A THRESHOLD DATE
+        
+        # 设置阈值日期
         date_threshold = datetime.strptime("Mar 20, 2025", '%b %d, %Y')
-
-        # CREATE LISTS FOR AVAILABLE DATES AND TEST CENTERS
+        
         available_slots = []
-
-        # CHECK FOR DATES BEFORE THE THRESHOLD
+        
+        # 检查日期并添加可用时段
         for date, center in zip(only_dates, test_center):
             if date < date_threshold:
-                # Format date for display
                 formatted_date = date.strftime('%b %d, %Y')
                 available_slots.append(f"{formatted_date}: {center}")
-
-        # SEND EMAIL IF AVAILABLE SLOTS ARE FOUND
+        
+        # 如果有可用时段，发送邮件
         if available_slots:
             availability_info = "\n".join(available_slots)
             send_email(url, availability_info)
@@ -120,12 +104,15 @@ def celpip_checker():
             print(f"No available dates at {now}")
             
     except Exception as e:
-        print(f"Error starting browser: {str(e)}")
+        print(f"Error occurred: {str(e)}")
+        raise e
     finally:
-        if 'browser' in locals():
+        if browser is not None:
             browser.quit()
-            print("Browser closed")       
-
+            print("Browser closed")
 
 if __name__ == "__main__":
-    celpip_checker()
+    try:
+        celpip_checker()
+    except Exception as e:
+        print(f"Script failed: {str(e)}")
