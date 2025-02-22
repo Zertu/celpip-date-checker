@@ -4,10 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 from email.message import EmailMessage
-from datetime import datetime, timedelta
+from datetime import datetime
 from selenium.webdriver.support.ui import Select
-from apscheduler.schedulers.blocking import BlockingScheduler
-from selenium.webdriver.edge.service import Service
 
 def find_xpath_click(full_x_path):
     variable = browser.find_element("xpath", full_x_path)
