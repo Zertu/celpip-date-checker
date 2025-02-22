@@ -13,6 +13,11 @@ on:
 jobs:
   check-celpip:
     runs-on: ubuntu-latest
+    container:
+      image: selenium/standalone-edge:latest
+      options: |
+        --shm-size=2g
+        --user root
     
     steps:
     - uses: actions/checkout@v4
@@ -41,13 +46,5 @@ jobs:
         echo "e_pwd=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
         echo "e_client=${{ secrets.EMAIL_CLIENT }}" >> $GITHUB_ENV
     
-    - name: Run in Selenium container
-      uses: addnab/docker-run-action@v3
-      with:
-        image: selenium/standalone-edge:latest
-        options: |
-          --shm-size=2g
-          -v ${{ github.workspace }}:/work
-          -w /work
-        run: |
-          python celpip.py
+    - name: Run script
+      run: python celpip.py
