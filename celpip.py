@@ -35,12 +35,12 @@ def celpip_checker():
     try:
         options = webdriver.EdgeOptions()
         options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
+        options.add_argument('--log-level=3')  # 只显示 FATAL 级别的日志
+        options.add_argument('--silent')
+        options.add_argument('--disable-logging')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable-setuid-sandbox')
-        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--no-sandbox')
         
         browser = webdriver.Edge(options=options)
         print("Browser started successfully")
