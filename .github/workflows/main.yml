@@ -13,6 +13,9 @@ on:
 jobs:
   check-celpip:
     runs-on: ubuntu-latest
+    with:
+      clean: false
+      set-safe-directory: false
     container:
       image: selenium/standalone-edge:latest
       options: --user root
