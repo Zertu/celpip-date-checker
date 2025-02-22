@@ -2,31 +2,28 @@ name: CELPIP Checker
 
 on:
   schedule:
-    - cron: '0 8-23 * * *'    
-    - cron: '10 8-23 * * *' 
-    - cron: '20 8-23 * * *' 
-    - cron: '30 8-23 * * *' 
-    - cron: '40 8-23 * * *' 
-    - cron: '50 8-23 * * *' 
+    - cron: '0 8-23 * * *'    # 每小时整点
+    - cron: '10 8-23 * * *'   # 每小时第10分钟
+    - cron: '20 8-23 * * *'   # 每小时第20分钟
+    - cron: '30 8-23 * * *'   # 每小时第30分钟
+    - cron: '40 8-23 * * *'   # 每小时第40分钟
+    - cron: '50 8-23 * * *'   # 每小时第50分钟
   workflow_dispatch:  # 允许手动触发
 
 jobs:
   check-celpip:
     runs-on: ubuntu-latest
-    container:
-      image: selenium/standalone-chrome:latest
-      options: --shm-size="2g"  # 增加共享内存大小
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     
     - name: Cache Python packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -44,5 +41,19 @@ jobs:
         echo "e_pwd=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
         echo "e_client=${{ secrets.EMAIL_CLIENT }}" >> $GITHUB_ENV
     
+    - name: Set up Chrome
+      uses: browser-actions/setup-chrome@latest
+      with:
+        chrome-version: stable
+    
+    - name: Set up ChromeDriver
+      uses: nanasess/setup-chromedriver@master
+    
     - name: Run script
-      run: python celpip.py
+      run: |
+        # Start Chrome Driver
+        chromedriver --version
+        chrome --version
+        
+        # Run the Python script
+        python celpip.py
