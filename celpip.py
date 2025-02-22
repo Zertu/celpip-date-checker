@@ -34,7 +34,7 @@ def celpip_checker():
     browser = None
 
     try:
-        options = webdriver.ChromeOptions()
+        options = webdriver.EdgeOptions()
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
@@ -43,7 +43,7 @@ def celpip_checker():
         options.add_argument('--disable-setuid-sandbox')
         options.add_argument('--window-size=1920,1080')
         
-        browser = webdriver.Chrome(options=options)
+        browser = webdriver.Edge(options=options)
         print("Browser started successfully")
         browser.get(url)
         print(f"Accessing URL: {url}")

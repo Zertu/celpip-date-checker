@@ -13,6 +13,9 @@ on:
 jobs:
   check-celpip:
     runs-on: ubuntu-latest
+    container:
+      image: selenium/standalone-edge:latest
+      options: --shm-size="2g"
     
     steps:
     - uses: actions/checkout@v4
@@ -41,19 +44,7 @@ jobs:
         echo "e_pwd=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
         echo "e_client=${{ secrets.EMAIL_CLIENT }}" >> $GITHUB_ENV
     
-    - name: Set up Chrome
-      uses: browser-actions/setup-chrome@latest
-      with:
-        chrome-version: stable
-    
-    - name: Set up ChromeDriver
-      uses: nanasess/setup-chromedriver@master
-    
     - name: Run script
       run: |
-        # Start Chrome Driver
-        chromedriver --version
-        chrome --version
-        
         # Run the Python script
         python celpip.py
