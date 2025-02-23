@@ -13,15 +13,15 @@ on:
 jobs:
   check-celpip:
     runs-on: ubuntu-latest
-    with:
-      clean: false
-      set-safe-directory: false
     container:
       image: selenium/standalone-edge:latest
       options: --user root
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        clean: false
+        set-safe-directory: false
     
     - name: Set up Python
       uses: actions/setup-python@v4
