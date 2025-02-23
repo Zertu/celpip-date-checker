@@ -44,4 +44,6 @@ jobs:
         echo "e_client=${{ secrets.EMAIL_CLIENT }}" >> $GITHUB_ENV
     
     - name: Run script
-      run: python celpip.py
+      run: |
+        . venv/bin/activate
+        python celpip.py
