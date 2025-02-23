@@ -59,8 +59,58 @@ def celpip_checker():
         browser.get(url)
         print(f"Accessing URL: {url}")
         browser.implicitly_wait(20)
+        page_source = browser.page_source
+        page = BeautifulSoup(page_source, 'html.parser')
+        print("Page content retrieved")
         
-        # ... rest of your code ...
+        # 找到所有日期容器
+        containers = page.findAll("div", {"class": "col-xs-1 col"})
+        print(f"Found {len(containers)} date containers")
+
+        # 只保留前10个
+        early_dates = containers[:10]
+        dates = []
+        test_center = []
+        
+        for item in early_dates:
+            # 检查可用性
+            availability_div = item.find("div", {"class": "availability-green"})
+            
+            if availability_div:  # 如果找到 availability-green class，说明有位置
+                date_div = item.find("div", {"class": "date"})
+                if date_div:
+                    month = date_div.find_all("span")[1].text
+                    day = date_div.find_all("span")[2].text
+                    year = str(datetime.now().year)
+                    date_str = f"{month} {day}, {year}"
+                    dates.append(date_str)
+                    
+                    # 同时添加对应的考试中心
+                    center = item.find_next("div", {"class": "address"}).text.strip()
+                    test_center.append(center)
+
+        # 转换为datetime对象进行比较
+        only_dates = [datetime.strptime(date, '%b %d, %Y') for date in dates]
+        
+        # 设置阈值日期
+        date_threshold = datetime.strptime("Mar 20, 2025", '%b %d, %Y')
+        
+        available_slots = []
+        
+        # 检查日期并添加可用时段
+        for date, center in zip(only_dates, test_center):
+            if date < date_threshold:
+                formatted_date = date.strftime('%b %d, %Y')
+                available_slots.append(f"{formatted_date}: {center}")
+        
+        # 如果有可用时段，发送邮件
+        if available_slots:
+            availability_info = "\n".join(available_slots)
+            send_email(url, availability_info)
+            print(f"Found {len(available_slots)} available slots. Email sent!")
+        else:
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"No available dates at {now}")
             
     except Exception as e:
         print(f"Error occurred: {str(e)}")
