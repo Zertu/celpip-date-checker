@@ -1,0 +1,11 @@
+version: '3'
+services:
+  celpip-checker:
+    build: .
+    container_name: celpip-checker
+    environment:
+      - DOCKER_ENV=true
+      - e_user=${EMAIL_USER}
+      - e_pwd=${EMAIL_PASSWORD}
+      - e_client=${EMAIL_CLIENT}
+    shm_size: '2g'
