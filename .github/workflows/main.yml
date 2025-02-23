@@ -35,6 +35,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        . venv/bin/activate
         pip install -r requirements.txt
 
     - name: Add Gmail credentials
