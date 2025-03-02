@@ -6,7 +6,14 @@ from bs4 import BeautifulSoup
 from email.message import EmailMessage
 from datetime import datetime
 import os
+from apscheduler.schedulers.blocking import BlockingScheduler
+from selenium.webdriver.support.select import Select
 
+def drop_down_selection(driver, element_id, selection):
+    select_element = driver.find_element(By.ID, element_id)
+    var = Select(select_element)
+    var.select_by_value(selection)
+    
 def send_email(url, availability_info):
     msg = EmailMessage()
     sender_email = os.environ.get('e_user')
@@ -37,45 +44,59 @@ def get_webdriver():
     options.add_argument('--disable-setuid-sandbox')
     options.add_argument('--window-size=1920,1080')
     
-    # 根据环境使用不同的配置
     if os.environ.get('DOCKER_ENV') == 'true':
-        # Docker 环境使用远程连接
         return webdriver.Remote(
             command_executor='http://localhost:4444',
             options=options
         )
     else:
-        # 本地环境直接使用 Edge
         return webdriver.Edge(options=options)
 
 def celpip_checker():
-    url = "https://secure.celpip.ca/RegWebApp/#/registration/test-selection"
+    url = "https://www.celpip.ca/"
     print("Starting browser...")
-    browser = None
-
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    
+    options.add_argument('--disable-gpu')
+    
+    # 减少日志输出
+    # options.add_argument('--log-level=3')
+    # options.add_argument('--silent')
+    # options.add_experimental_option('excludeSwitches', ['enable-logging'])
+    
+    # 设置 user-agent 避免被检测为机器人
+    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0')
     try:
-        browser = get_webdriver()
-        print("Browser started successfully")
+        browser = webdriver.Chrome(options=options)
+        browser.implicitly_wait(0.5)
         browser.get(url)
-        print(f"Accessing URL: {url}")
-        browser.implicitly_wait(20)
-        page_source = browser.page_source
-        page = BeautifulSoup(page_source, 'html.parser')
-        print("Page content retrieved")
-        
-        # 找到所有日期容器
-        containers = page.findAll("div", {"class": "col-xs-1 col"})
-        print(f"Found {len(containers)} date containers")
+        drop_down_selection(browser, "filter-type", "CELPIP-G")
+        drop_down_selection(browser, "filter-country", "Canada")
+        drop_down_selection(browser, "filter-region", "Newfoundland And Labrador")
+        drop_down_selection(browser, "filter-city", "St. John's")
+        element = browser.find_element(By.XPATH, "/html/body/main/section[2]/div/div/form/div/div[2]")
+        element.click()
+        time.sleep(6)
 
-        # 只保留前10个
+        # DOWNLOAD THE HTML CONTENT OF THE PAGE
+        page = BeautifulSoup(browser.page_source, "html.parser")
+        browser.quit()
+        # FIND ALL THE "LI" LIST ITEM TAGS
+        containers = page.findAll("div", {"class": "col-xs-1 col"})
+
+        # ONLY KEEP THE FIRST TEN
         early_dates = containers[:10]
+
+        # EXTRACT THE DATE COMPONENTS AND COMBINE THEM
         dates = []
         test_center = []
-        
         for item in early_dates:
             # 检查可用性
             availability_div = item.find("div", {"class": "availability-green"})
-            
+            print(item.find("div", {"class": "date"}))
             if availability_div:  # 如果找到 availability-green class，说明有位置
                 date_div = item.find("div", {"class": "date"})
                 if date_div:
@@ -88,22 +109,24 @@ def celpip_checker():
                     # 同时添加对应的考试中心
                     center = item.find_next("div", {"class": "address"}).text.strip()
                     test_center.append(center)
-
-        # 转换为datetime对象进行比较
+        
+        # CONVERT THE TEXT INTO DATETIME OBJECTS
         only_dates = [datetime.strptime(date, '%b %d, %Y') for date in dates]
-        
-        # 设置阈值日期
+
+        # SET A THRESHOLD DATE
         date_threshold = datetime.strptime("Mar 20, 2025", '%b %d, %Y')
-        
+
+        # CREATE LISTS FOR AVAILABLE DATES AND TEST CENTERS
         available_slots = []
-        
-        # 检查日期并添加可用时段
+
+        # CHECK FOR DATES BEFORE THE THRESHOLD
         for date, center in zip(only_dates, test_center):
             if date < date_threshold:
+                # Format date for display
                 formatted_date = date.strftime('%b %d, %Y')
                 available_slots.append(f"{formatted_date}: {center}")
-        
-        # 如果有可用时段，发送邮件
+
+        # SEND EMAIL IF AVAILABLE SLOTS ARE FOUND
         if available_slots:
             availability_info = "\n".join(available_slots)
             send_email(url, availability_info)
@@ -113,22 +136,25 @@ def celpip_checker():
             print(f"No available dates at {now}")
             
     except Exception as e:
-        print(f"Error occurred: {str(e)}")
-        raise e
+        print(f"Error starting browser: {str(e)}")
     finally:
-        if browser is not None:
+        if 'browser' in locals():
             browser.quit()
-            print("Browser closed")
+            print("Browser closed")       
+
+
+def start_scheduler():
+    scheduler = BlockingScheduler()
+    scheduler.add_job(celpip_checker, 'interval', minutes=1)
+    print("Scheduler started. Will check every minute.")
+    scheduler.start()
 
 if __name__ == "__main__":
-    # 在 Docker 中循环运行
     if os.environ.get('DOCKER_ENV') == 'true':
-        while True:
-            try:
-                celpip_checker()
-            except Exception as e:
-                print(f"Script failed: {str(e)}")
-            time.sleep(600)  # 每10分钟运行一次
+        try:
+            start_scheduler()
+        except (KeyboardInterrupt, SystemExit):
+            print("Scheduler stopped.")
     else:
-        # 本地环境只运行一次
-        celpip_checker()
+        # celpip_checker()
+        start_scheduler()
