@@ -43,6 +43,7 @@ def get_webdriver():
     options.add_argument('--disable-extensions')
     options.add_argument('--disable-setuid-sandbox')
     options.add_argument('--window-size=1920,1080')
+    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0')
     
     if os.environ.get('DOCKER_ENV') == 'true':
         return webdriver.Remote(
@@ -55,22 +56,8 @@ def get_webdriver():
 def celpip_checker():
     url = "https://www.celpip.ca/"
     print("Starting browser...")
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    
-    options.add_argument('--disable-gpu')
-    
-    # 减少日志输出
-    # options.add_argument('--log-level=3')
-    # options.add_argument('--silent')
-    # options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    
-    # 设置 user-agent 避免被检测为机器人
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0')
     try:
-        browser = webdriver.Chrome(options=options)
+        browser = get_webdriver()
         browser.implicitly_wait(0.5)
         browser.get(url)
         drop_down_selection(browser, "filter-type", "CELPIP-G")
