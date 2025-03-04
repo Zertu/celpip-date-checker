@@ -33,8 +33,9 @@ jobs:
         . venv/bin/activate
         pip install -r requirements.txt
 
-    - name: Add Gmail credentials
+    - name: Add environment variables
       run: |
+        echo "DOCKER_ENV=true" >> $GITHUB_ENV
         echo "e_user=${{ secrets.EMAIL_USER }}" >> $GITHUB_ENV
         echo "e_pwd=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
         echo "e_client=${{ secrets.EMAIL_CLIENT }}" >> $GITHUB_ENV
